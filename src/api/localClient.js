@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { parseSheet } from '@/lib/importParser.js';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 const now = () => new Date().toISOString();
@@ -161,72 +162,80 @@ const templateBody = (company, channel) => {
 
 // ─── Excel Import ─────────────────────────────────────────────────────────────
 
-const COLUMN_MAP = {
-  'company name':   'company_name',
-  'company':        'company_name',
-  'cr number':      'cr_number',
-  'cr':             'cr_number',
-  'category':       'category',
-  'status':         'enrichment_status', // Excel "Status" = enrichment status (partial/not_found/complete)
-  'primary email':  'primary_email',
-  'email':          'primary_email',
-  'all emails':     'all_emails',
-  'primary phone':  'primary_phone',
-  'phone':          'primary_phone',
-  'all phones':     'all_phones',
-  'website':        'website',
-  'linkedin':       'linkedin_url',
-  'linkedin url':   'linkedin_url',
-  'source':         'source',
-  'last enriched':  'last_enriched',
-};
-
-const mapRow = (headers, row) => {
-  const company = {};
-  headers.forEach(h => {
-    const key = COLUMN_MAP[h.toLowerCase().trim()];
-    if (key && row[h] !== undefined && row[h] !== null && String(row[h]).trim() !== '') {
-      company[key] = String(row[h]).trim();
-    }
-  });
-  return company;
-};
-
-const parseExcelBase64 = (fileBase64) => {
+const parseExcelWorkbook = (fileBase64) => {
   const binary = atob(fileBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const wb = XLSX.read(bytes, { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-  const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
-  return { headers, rows };
-};
 
-const computeEnrichmentStatus = (company, excelStatus) => {
-  // Trust the Excel value if it's a valid enum
-  const valid = ['complete', 'partial', 'not_found', 'needs_enrichment'];
-  if (excelStatus && valid.includes(excelStatus.toLowerCase())) return excelStatus.toLowerCase();
-  // Otherwise compute
-  if (company.primary_email && company.linkedin_url) return 'complete';
-  if (company.primary_email || company.linkedin_url || company.primary_phone) return 'partial';
-  if (company.website) return 'partial';
-  return 'needs_enrichment';
+  let bestSheetName = wb.SheetNames[0];
+  let bestParseResult = null;
+  let bestRawRows = [];
+  let bestScore = -1;
+
+  for (const sheetName of wb.SheetNames) {
+    const ws = wb.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    const result = parseSheet(rawRows);
+    if (result.score > bestScore) {
+      bestScore = result.score;
+      bestSheetName = sheetName;
+      bestParseResult = result;
+      bestRawRows = rawRows;
+    }
+  }
+
+  return { sheetName: bestSheetName, parseResult: bestParseResult, rawRows: bestRawRows, allSheets: wb.SheetNames };
 };
 
 const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) => {
-  const { headers, rows } = parseExcelBase64(file_base64);
+  const { sheetName, parseResult, rawRows, allSheets } = parseExcelWorkbook(file_base64);
+  const { companies, skipped, recognized, unrecognized, headerRowIndex, totalDataRows } = parseResult;
 
   if (preview_only) {
-    return Promise.resolve({ data: { headers, preview: rows.slice(0, 5), total_rows: rows.length } });
+    const headerRow = rawRows[headerRowIndex] ?? [];
+    const previewHeaders = headerRow
+      .map(h => (h != null && String(h).trim() !== '') ? String(h).trim() : null)
+      .filter(Boolean);
+    const dataRows = rawRows
+      .slice(headerRowIndex + 1)
+      .filter(r => r.some(c => c !== null && c !== '' && c !== undefined));
+    const previewRows = dataRows.slice(0, 5).map(row => {
+      const obj = {};
+      headerRow.forEach((h, i) => {
+        if (h != null && String(h).trim() !== '') obj[String(h).trim()] = row[i] ?? '';
+      });
+      return obj;
+    });
+    return Promise.resolve({
+      data: {
+        headers: previewHeaders,
+        preview: previewRows,
+        total_rows: totalDataRows,
+        detected_sheet: sheetName,
+        column_mapping: recognized.map(r => ({ raw: r.raw, field: r.field })),
+      },
+    });
   }
 
+  // ── Actual import ──────────────────────────────────────────────────────────
   const existing = getStore('Company');
   const existingByName = new Map(existing.map(c => [c.company_name?.toLowerCase(), c]));
 
+  const skipCounts = { empty_row: 0, missing_company_name: 0, duplicate_in_file: 0, duplicate_existing: 0, save_failed: 0 };
+  const skipDetails = [];
+
+  for (const s of skipped) {
+    skipCounts[s.reason] = (skipCounts[s.reason] || 0) + 1;
+    skipDetails.push(s);
+  }
+
   const summary = {
-    total_rows: rows.length, imported_rows: 0, updated_rows: 0, duplicate_rows: 0,
-    skipped_rows: 0, error_rows: 0, email_ready: 0, linkedin_ready: 0, phone_ready: 0,
+    total_rows: totalDataRows,
+    imported_rows: 0, updated_rows: 0, duplicate_rows: 0,
+    skipped_rows: skipped.length,
+    error_rows: 0,
+    email_ready: 0, linkedin_ready: 0, phone_ready: 0,
     needs_enrichment: 0, missing_email: 0, missing_phone: 0, missing_linkedin: 0,
     error_details: [],
   };
@@ -263,26 +272,32 @@ const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) 
         channel: ch,
         draft_type: ch === 'email' ? 'first_outreach' : ch === 'linkedin' ? 'connection_request' : 'call_script',
         subject: ch === 'email' ? `Introduction – ${companyName}` : undefined,
-        body: '',
-        status: 'draft',
+        body: '', status: 'draft',
       });
       draftKeys.add(key);
     }
   };
 
-  rows.forEach((row, i) => {
+  const seenNames = new Set();
+
+  for (const { rowIndex, mapped } of companies) {
     try {
-      const rawCompany = mapRow(headers, row);
-      if (!rawCompany.company_name) { summary.skipped_rows++; return; }
+      const nameKey = mapped.company_name.toLowerCase();
 
-      const nameKey = rawCompany.company_name.toLowerCase();
+      if (seenNames.has(nameKey)) {
+        skipCounts.duplicate_in_file++;
+        skipDetails.push({ row: rowIndex, reason: 'duplicate_in_file' });
+        summary.skipped_rows++;
+        continue;
+      }
+      seenNames.add(nameKey);
+
       const existingCompany = existingByName.get(nameKey);
-      const enrichmentStatus = computeEnrichmentStatus(rawCompany, rawCompany.enrichment_status);
-
       let companyId, companyName, sourceCompany;
 
       if (existingCompany) {
         summary.duplicate_rows++;
+        skipCounts.duplicate_existing++;
         companyId = existingCompany.id;
         companyName = existingCompany.company_name;
         sourceCompany = existingCompany;
@@ -290,8 +305,7 @@ const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) 
         const record = {
           id: generateId(), created_date: now(), updated_date: now(),
           outreach_status: 'not_started', notes_count: 0,
-          ...rawCompany,
-          enrichment_status: enrichmentStatus,
+          ...mapped,
         };
         newCompanies.push(record);
         existingByName.set(nameKey, record);
@@ -301,42 +315,59 @@ const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) 
         sourceCompany = record;
       }
 
-      // Always link to the project (if specified) — even for duplicates
       linkToProject(companyId, companyName);
-      // Always ensure drafts exist for contactable channels
       ensureDrafts(companyId, companyName, sourceCompany);
 
       if (sourceCompany.primary_email) summary.email_ready++; else summary.missing_email++;
       if (sourceCompany.linkedin_url) summary.linkedin_ready++; else summary.missing_linkedin++;
       if (sourceCompany.primary_phone) summary.phone_ready++; else summary.missing_phone++;
-      if (['needs_enrichment', 'not_found'].includes(enrichmentStatus)) summary.needs_enrichment++;
+      if (['needs_enrichment', 'not_found'].includes(sourceCompany.enrichment_status)) summary.needs_enrichment++;
     } catch (err) {
       summary.error_rows++;
-      summary.error_details.push({ row: i + 2, error: err.message });
+      summary.error_details.push({ row: rowIndex, error: err.message });
+      skipCounts.save_failed++;
     }
-  });
+  }
 
   setStore('Company', newCompanies);
   setStore('OutreachDraft', newDrafts);
   setStore('ProjectCompany', projectLinks);
 
+  const saved = summary.imported_rows + summary.updated_rows;
+  const status = saved > 0
+    ? (summary.error_rows > 0 ? 'partial_success' : 'completed')
+    : (summary.error_rows > 0 ? 'failed' : 'completed_no_records');
+
   const jobs = getStore('ImportJob');
   const job = {
     id: generateId(), created_date: now(), updated_date: now(),
-    filename: filename || 'import.xlsx', status: 'completed',
+    filename: filename || 'import.xlsx',
+    status,
     started_at: now(), completed_at: now(),
+    detected_sheet: sheetName,
+    detected_header_row: headerRowIndex,
+    skip_reasons: JSON.stringify(skipCounts),
+    column_mapping: JSON.stringify(recognized.map(r => ({ raw: r.raw, field: r.field }))),
     ...summary,
   };
-  // Only persist error_details when there are actual errors
-  if (summary.error_details.length > 0) {
-    job.error_details = JSON.stringify(summary.error_details);
-  } else {
-    delete job.error_details;
-  }
+  if (summary.error_details.length === 0) delete job.error_details;
+  else job.error_details = JSON.stringify(summary.error_details);
   jobs.push(job);
   setStore('ImportJob', jobs);
 
-  return Promise.resolve({ data: { summary } });
+  const diagnostics = {
+    detected_sheet: sheetName,
+    detected_header_row: headerRowIndex,
+    all_sheets: allSheets,
+    column_mapping: recognized.map(r => ({ raw: r.raw, field: r.field })),
+    unrecognized_headers: unrecognized,
+    skip_reasons: skipCounts,
+    first_3_rows: companies.slice(0, 3).map(c => c.mapped),
+    first_10_skip_details: skipDetails.slice(0, 10),
+    first_10_save_errors: [],
+  };
+
+  return Promise.resolve({ data: { summary, status, diagnostics } });
 };
 
 // ─── Project Operations ───────────────────────────────────────────────────────
