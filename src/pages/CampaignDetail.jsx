@@ -212,7 +212,8 @@ export default function CampaignDetail() {
       total: enrichedPcs.length,
       outreach_ready: companies.filter(c => isOutreachReady(c)).length,
       needs_enrichment: companies.filter(c => !isOutreachReady(c)).length,
-      email_ready: companies.filter(c => c?.primary_email).length,
+      email_ready: companies.filter(c => c?.primary_email || c?.contact_email).length,
+      missing_email: companies.filter(c => !c?.primary_email && !c?.contact_email).length,
       contacted: (stageCounts.contacted || 0) + (stageCounts.replied || 0) + (stageCounts.qualified || 0),
       stageCounts,
     };
@@ -227,13 +228,23 @@ export default function CampaignDetail() {
       : enrichedPcs.map(pc => pc.company_id);
     if (!companyIds.length) { toast.error('No companies to generate for'); return; }
     setBulkGenerating(channel || 'all');
-    await base44.functions.invoke('generateOutreach', { bulk_ids: companyIds, channel: channel || undefined });
-    for (const pc of enrichedPcs) {
-      if (['new', 'queued'].includes(pc.outreach_stage)) {
-        await base44.entities.ProjectCompany.update(pc.id, { outreach_stage: 'generated' });
+    try {
+      const res = await base44.functions.invoke('generateOutreach', { bulk_ids: companyIds, channel: channel || 'email' });
+      const d = res.data || {};
+      const generated = d.generated || 0;
+      const skipped = d.skipped_no_email || 0;
+      toast.success(`Generated ${generated} email draft${generated !== 1 ? 's' : ''}${skipped > 0 ? ` · ${skipped} skipped (no email)` : ''}`);
+      if (skipped > 0 && generated === 0) {
+        toast.warning(`No email addresses found. Add emails to companies or import a file with email columns.`);
       }
+      for (const pc of enrichedPcs) {
+        if (['new', 'queued'].includes(pc.outreach_stage)) {
+          await base44.entities.ProjectCompany.update(pc.id, { outreach_stage: 'generated' });
+        }
+      }
+    } catch {
+      toast.error('Draft generation failed');
     }
-    toast.success(`Drafts generated for ${companyIds.length} companies`);
     qc.invalidateQueries({ queryKey: ['project-companies', id] });
     qc.invalidateQueries({ queryKey: ['project-drafts', id] });
     setSelected([]);
@@ -311,12 +322,13 @@ export default function CampaignDetail() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Summary</p>
             <div className="space-y-2">
               {[
-                { label: 'Companies', value: stats.total },
-                { label: 'Outreach Ready', value: stats.outreach_ready },
-                { label: 'Needs Enrichment', value: stats.needs_enrichment },
-                { label: 'Contacted', value: stats.contacted },
+                { label: 'Companies',      value: stats.total },
+                { label: 'Email Ready',    value: stats.email_ready },
+                { label: 'Missing Email',  value: stats.missing_email },
+                { label: 'Contacted',      value: stats.contacted },
                 { label: 'Pending Drafts', value: pendingDrafts },
-                { label: 'Sent', value: sentDrafts },
+                { label: 'Approved',       value: approvedDrafts },
+                { label: 'Sent',           value: sentDrafts },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{label}</span>
@@ -367,22 +379,18 @@ export default function CampaignDetail() {
                 <Button size="sm" variant="outline" onClick={() => setShowAddModal(true)} className="gap-1.5">
                   <Plus className="w-4 h-4" /> Add Companies
                 </Button>
-                {[
-                  { ch: 'email', label: 'Gen Email', color: 'text-blue-600' },
-                  { ch: null, label: 'Gen All', color: 'text-primary' },
-                ].map(({ ch, label, color }) => (
-                  <Button key={label} size="sm" variant="outline" onClick={() => handleBulkGenerate(ch)} disabled={bulkGenerating !== null} className={cn('h-9 text-xs gap-1', color)}>
-                    {bulkGenerating === (ch || 'all') ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                    {label}
-                  </Button>
-                ))}
+                <Button size="sm" variant="outline" onClick={() => handleBulkGenerate('email')} disabled={bulkGenerating !== null} className="h-9 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50">
+                  {bulkGenerating === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                  Generate Email Drafts{stats.email_ready > 0 ? ` (${stats.email_ready})` : ''}
+                </Button>
               </div>
 
               {selected.length > 0 && (
                 <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg text-sm">
                   <span className="font-medium text-primary">{selected.length} selected</span>
-                  <Button size="sm" onClick={() => handleBulkGenerate('email')} disabled={bulkGenerating !== null} className="h-7 text-xs" variant="outline">
-                    Gen Email for selected
+                  <Button size="sm" onClick={() => handleBulkGenerate('email')} disabled={bulkGenerating !== null} className="h-7 text-xs gap-1" variant="outline">
+                    {bulkGenerating === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    Generate Email Drafts
                   </Button>
                   <button onClick={() => setSelected([])} className="ml-auto"><X className="w-4 h-4 text-muted-foreground" /></button>
                 </div>
