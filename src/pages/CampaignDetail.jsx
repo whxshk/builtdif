@@ -32,11 +32,13 @@ const STAGE_COLORS = {
   skipped:        'bg-gray-100 text-gray-400',
 };
 
+const isOutreachReady = (c) => !!(c.primary_email || c.linkedin_url || c.primary_phone || c.whatsapp);
+
 function AddCompaniesModal({ open, onClose, projectId, onAdded }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [emailFilter, setEmailFilter] = useState('');
+  const [readinessFilter, setReadinessFilter] = useState('all');
   const [loading, setLoading] = useState(false);
 
   const { data: allCompanies = [] } = useQuery({
@@ -57,10 +59,13 @@ function AddCompaniesModal({ open, onClose, projectId, onAdded }) {
     if (existingIds.has(c.id)) return false;
     if (search && !c.company_name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (categoryFilter && c.category !== categoryFilter) return false;
-    if (emailFilter === 'yes' && !c.primary_email) return false;
-    if (emailFilter === 'no' && c.primary_email) return false;
+    if (readinessFilter === 'ready' && !isOutreachReady(c)) return false;
+    if (readinessFilter === 'needs_enrichment' && isOutreachReady(c)) return false;
     return true;
   });
+
+  const selectedCompanies = allCompanies.filter(c => selected.includes(c.id));
+  const selectedNotReady = selectedCompanies.filter(c => !isOutreachReady(c)).length;
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleAll = () => setSelected(selected.length === filtered.length ? [] : filtered.map(c => c.id));
@@ -71,18 +76,25 @@ function AddCompaniesModal({ open, onClose, projectId, onAdded }) {
     const res = await base44.functions.invoke('projectOperations', { action: 'add_companies', project_id: projectId, company_ids: selected });
     toast.success(`Added ${res.data.added} companies`);
     if (res.data.skipped_duplicates > 0) toast.info(`${res.data.skipped_duplicates} already in campaign`);
+    if (selectedNotReady > 0) toast.warning(`${selectedNotReady} companies have no contact channels — enrich them before generating drafts`);
     setSelected([]);
     onAdded();
     onClose();
     setLoading(false);
   };
 
+  const readyCounts = {
+    all: allCompanies.filter(c => !existingIds.has(c.id)).length,
+    ready: allCompanies.filter(c => !existingIds.has(c.id) && isOutreachReady(c)).length,
+    needs: allCompanies.filter(c => !existingIds.has(c.id) && !isOutreachReady(c)).length,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader><DialogTitle>Add Companies to Campaign</DialogTitle></DialogHeader>
-        <div className="flex gap-2 mb-2">
-          <div className="relative flex-1">
+        <div className="flex gap-2 mb-2 flex-wrap">
+          <div className="relative flex-1 min-w-40">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search companies..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
@@ -93,18 +105,21 @@ function AddCompaniesModal({ open, onClose, projectId, onAdded }) {
               {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={emailFilter || 'any'} onValueChange={v => setEmailFilter(v === 'any' ? '' : v)}>
-            <SelectTrigger className="w-32 h-9 text-xs"><SelectValue placeholder="Email" /></SelectTrigger>
+          <Select value={readinessFilter} onValueChange={setReadinessFilter}>
+            <SelectTrigger className="w-44 h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">Any</SelectItem>
-              <SelectItem value="yes">Has Email</SelectItem>
-              <SelectItem value="no">No Email</SelectItem>
+              <SelectItem value="all" className="text-xs">All ({readyCounts.all})</SelectItem>
+              <SelectItem value="ready" className="text-xs">Outreach ready ({readyCounts.ready})</SelectItem>
+              <SelectItem value="needs_enrichment" className="text-xs">Needs enrichment ({readyCounts.needs})</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-3 px-1 py-1.5 text-xs text-muted-foreground border-b border-border">
           <Checkbox checked={selected.length === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
-          <span>{filtered.length} available · {selected.length} selected</span>
+          <span>{filtered.length} shown · {selected.length} selected</span>
+          {selectedNotReady > 0 && (
+            <span className="text-amber-600 font-medium">{selectedNotReady} need enrichment</span>
+          )}
           {selected.length > 0 && (
             <Button size="sm" onClick={handleAdd} disabled={loading} className="ml-auto h-7 text-xs gap-1.5">
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -113,20 +128,26 @@ function AddCompaniesModal({ open, onClose, projectId, onAdded }) {
           )}
         </div>
         <div className="overflow-y-auto flex-1">
-          {filtered.slice(0, 200).map(c => (
-            <div key={c.id} className="flex items-center gap-3 px-2 py-2 hover:bg-muted/30 border-b border-border/20 cursor-pointer" onClick={() => toggleSelect(c.id)}>
-              <Checkbox checked={selected.includes(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{c.company_name}</p>
-                <p className="text-xs text-muted-foreground">{[c.category, c.cr_number ? `CR ${c.cr_number}` : ''].filter(Boolean).join(' · ')}</p>
+          {filtered.slice(0, 200).map(c => {
+            const ready = isOutreachReady(c);
+            return (
+              <div key={c.id} className="flex items-center gap-3 px-2 py-2 hover:bg-muted/30 border-b border-border/20 cursor-pointer" onClick={() => toggleSelect(c.id)}>
+                <Checkbox checked={selected.includes(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.company_name}</p>
+                  <p className="text-xs text-muted-foreground">{[c.category, c.cr_number ? `CR ${c.cr_number}` : ''].filter(Boolean).join(' · ')}</p>
+                </div>
+                <div className="flex gap-1.5 items-center">
+                  {c.primary_email && <Mail className="w-3.5 h-3.5 text-green-500" title="Email" />}
+                  {c.linkedin_url && <Linkedin className="w-3.5 h-3.5 text-sky-500" title="LinkedIn" />}
+                  {(c.primary_phone || c.whatsapp) && <Phone className="w-3.5 h-3.5 text-purple-500" title="Phone/WhatsApp" />}
+                  {!ready && (
+                    <span className="text-[10px] bg-amber-50 border border-amber-200 text-amber-600 rounded px-1 ml-1">needs enrichment</span>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                {c.primary_email && <Mail className="w-3.5 h-3.5 text-green-500" />}
-                {c.linkedin_url && <Linkedin className="w-3.5 h-3.5 text-sky-500" />}
-                {c.primary_phone && <Phone className="w-3.5 h-3.5 text-purple-500" />}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {filtered.length === 0 && <div className="text-center py-12 text-muted-foreground text-sm">No matching companies</div>}
         </div>
       </DialogContent>
@@ -189,6 +210,8 @@ export default function CampaignDetail() {
     for (const pc of enrichedPcs) stageCounts[pc.outreach_stage] = (stageCounts[pc.outreach_stage] || 0) + 1;
     return {
       total: enrichedPcs.length,
+      outreach_ready: companies.filter(c => isOutreachReady(c)).length,
+      needs_enrichment: companies.filter(c => !isOutreachReady(c)).length,
       email_ready: companies.filter(c => c?.primary_email).length,
       contacted: (stageCounts.contacted || 0) + (stageCounts.replied || 0) + (stageCounts.qualified || 0),
       stageCounts,
@@ -289,10 +312,10 @@ export default function CampaignDetail() {
             <div className="space-y-2">
               {[
                 { label: 'Companies', value: stats.total },
-                { label: 'Email Ready', value: stats.email_ready },
+                { label: 'Outreach Ready', value: stats.outreach_ready },
+                { label: 'Needs Enrichment', value: stats.needs_enrichment },
                 { label: 'Contacted', value: stats.contacted },
                 { label: 'Pending Drafts', value: pendingDrafts },
-                { label: 'Approved Drafts', value: approvedDrafts },
                 { label: 'Sent', value: sentDrafts },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between text-xs">

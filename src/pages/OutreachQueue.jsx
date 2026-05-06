@@ -42,6 +42,7 @@ export default function OutreachQueue() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [ollamaModel, setOllamaModel] = useState(null);
   const [ollamaChecked, setOllamaChecked] = useState(false);
+  const [testMode, setTestMode] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -51,6 +52,9 @@ export default function OutreachQueue() {
 
   useEffect(() => {
     getOllamaModel().then(m => { setOllamaModel(m); setOllamaChecked(true); });
+    base44.functions.invoke('appSettings', { action: 'get' })
+      .then(res => { if (res.data?.settings) setTestMode(!!res.data.settings.test_mode); })
+      .catch(() => {});
   }, []);
 
   const { data: drafts = [], isLoading } = useQuery({
@@ -162,6 +166,13 @@ export default function OutreachQueue() {
           <p className="text-sm text-muted-foreground mt-0.5">Review, generate, approve, and send outreach drafts</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Test mode badge */}
+          {testMode && (
+            <div className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Test mode — no real emails sent
+            </div>
+          )}
           {/* Ollama status */}
           {ollamaChecked && (
             <div className={cn('flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border',
@@ -327,13 +338,14 @@ export default function OutreachQueue() {
                           </Button>
                         )}
                         {draft.status === 'approved' && draft.channel === 'email' && (
-                          <Button size="sm" onClick={() => handleSendEmail(draft.id)} className="h-7 text-xs gap-1 bg-blue-600 hover:bg-blue-700 text-white">
-                            <Send className="w-3 h-3" /> Send
+                          <Button size="sm" onClick={() => handleSendEmail(draft.id)}
+                            className={cn('h-7 text-xs gap-1', testMode ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')}>
+                            <Send className="w-3 h-3" /> {testMode ? 'Simulate' : 'Send'}
                           </Button>
                         )}
                         {draft.status === 'approved' && draft.channel === 'linkedin' && (
                           <Button size="sm" variant="outline" onClick={() => handleCopy(draft)} className="h-7 text-xs gap-1 border-sky-300 text-sky-700">
-                            <Copy className="w-3 h-3" /> Copy
+                            <Copy className="w-3 h-3" /> Copy msg
                           </Button>
                         )}
                         {draft.status === 'approved' && draft.channel === 'phone' && (

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Mail, Phone, Linkedin, Globe, Building2, ArrowLeft,
-  CheckCircle2, AlertTriangle, Copy, Send, Clock, FileText, Edit2, Zap, Plus, ExternalLink, Loader2, X, Check
+  CheckCircle2, AlertTriangle, Copy, Send, Clock, FileText, Edit2, Zap, Plus, ExternalLink, Loader2, X, Check,
+  MessageCircle, Save
 } from 'lucide-react';
 import AICopilot from '@/components/AICopilot';
 import { Button } from '@/components/ui/button';
@@ -15,9 +16,85 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+function EditContactModal({ company, open, onClose, onSaved }) {
+  const [fields, setFields] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setFields({
+        primary_email:  company.primary_email  || '',
+        primary_phone:  company.primary_phone  || '',
+        whatsapp:       company.whatsapp       || '',
+        linkedin_url:   company.linkedin_url   || '',
+        website:        company.website        || '',
+        contact_person: company.contact_person || '',
+        contact_title:  company.contact_title  || '',
+        contact_email:  company.contact_email  || '',
+        contact_phone:  company.contact_phone  || '',
+      });
+    }
+  }, [open, company]);
+
+  const set = (k, v) => setFields(f => ({ ...f, [k]: v }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    const cleaned = {};
+    for (const [k, v] of Object.entries(fields)) {
+      cleaned[k] = v.trim() || null;
+    }
+    const hasChannel = cleaned.primary_email || cleaned.primary_phone || cleaned.whatsapp || cleaned.linkedin_url;
+    cleaned.enrichment_status = hasChannel ? (
+      cleaned.primary_email && (cleaned.linkedin_url || cleaned.primary_phone || cleaned.whatsapp) ? 'complete' : 'partial'
+    ) : 'needs_enrichment';
+    await base44.entities.Company.update(company.id, cleaned);
+    toast.success('Contact info saved');
+    onSaved();
+    onClose();
+    setSaving(false);
+  };
+
+  const Field = ({ label, k, type = 'text', placeholder }) => (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <Input type={type} value={fields[k] || ''} onChange={e => set(k, e.target.value)} placeholder={placeholder} className="h-8 text-xs" />
+    </div>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Edit Contact Info</DialogTitle></DialogHeader>
+        <div className="space-y-3 py-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contact Channels</p>
+          <Field label="Primary Email" k="primary_email" type="email" placeholder="email@company.com" />
+          <Field label="Primary Phone" k="primary_phone" placeholder="+973 1234 5678" />
+          <Field label="WhatsApp" k="whatsapp" placeholder="+973 1234 5678" />
+          <Field label="LinkedIn URL" k="linkedin_url" placeholder="https://linkedin.com/company/..." />
+          <Field label="Website" k="website" placeholder="https://company.com" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-1">Contact Person</p>
+          <Field label="Name" k="contact_person" placeholder="John Smith" />
+          <Field label="Title" k="contact_title" placeholder="CEO / Head of Procurement" />
+          <Field label="Contact Email" k="contact_email" type="email" placeholder="john@company.com" />
+          <Field label="Contact Phone" k="contact_phone" placeholder="+973 1234 5678" />
+        </div>
+        <div className="flex gap-2 justify-end pt-2">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            Save
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const CHANNEL_ICONS = { email: Mail, linkedin: Linkedin, phone: Phone };
 const CHANNEL_COLORS = {
@@ -149,8 +226,8 @@ function DraftCard({ draft, company, onRefresh }) {
               </Button>
             )}
             {draft.status === 'approved' && draft.channel === 'email' && (
-              <Button size="sm" onClick={handleSendEmail} disabled={loading} className="h-7 text-xs gap-1 bg-blue-600 hover:bg-blue-700 text-white">
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3 h-3" />Send Email</>}
+              <Button size="sm" onClick={handleSendEmail} disabled={loading} className="h-7 text-xs gap-1 bg-amber-500 hover:bg-amber-600 text-white" title="Test mode: email is simulated, not actually sent">
+                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3 h-3" />Simulate (test)</>}
               </Button>
             )}
             {draft.channel === 'linkedin' && draft.status === 'approved' && (
@@ -195,6 +272,7 @@ export default function CompanyProfile() {
   const [noteType, setNoteType] = useState('general');
   const [generatingChannel, setGeneratingChannel] = useState(null);
   const [activeTab, setActiveTab] = useState('drafts');
+  const [editContactOpen, setEditContactOpen] = useState(false);
 
   const { data: company, isLoading: loadingCo } = useQuery({
     queryKey: ['company', id],
@@ -265,7 +343,8 @@ export default function CompanyProfile() {
   const hasEmail = !!company.primary_email;
   const hasLinkedIn = !!company.linkedin_url;
   const hasPhone = !!company.primary_phone;
-  const channels = [hasEmail && 'email', hasLinkedIn && 'linkedin', hasPhone && 'phone'].filter(Boolean);
+  const hasWhatsApp = !!company.whatsapp;
+  const channels = [hasEmail && 'email', hasLinkedIn && 'linkedin', (hasPhone || hasWhatsApp) && 'phone'].filter(Boolean);
 
   const emailDrafts = drafts.filter(d => d.channel === 'email');
   const linkedinDrafts = drafts.filter(d => d.channel === 'linkedin');
@@ -297,17 +376,30 @@ export default function CompanyProfile() {
             )}
           </div>
 
-          {/* Outreach Readiness */}
+          {/* Outreach Channels */}
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outreach Channels</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outreach Channels</p>
+              <Button size="sm" variant="ghost" className="h-6 text-xs px-2 text-muted-foreground" onClick={() => setEditContactOpen(true)}>
+                <Edit2 className="w-3 h-3 mr-1" /> Edit
+              </Button>
+            </div>
             <div className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs', hasEmail ? 'bg-green-50 text-green-700' : 'bg-muted text-muted-foreground')}>
               <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-              {hasEmail ? company.primary_email : 'No email'}
+              <span className="truncate">{hasEmail ? company.primary_email : 'No email'}</span>
             </div>
             <div className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs', hasPhone ? 'bg-purple-50 text-purple-700' : 'bg-muted text-muted-foreground')}>
               <Phone className="w-3.5 h-3.5 flex-shrink-0" />
               {hasPhone ? company.primary_phone : 'No phone'}
             </div>
+            {hasWhatsApp && (
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs bg-green-50 text-green-700">
+                <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <a href={`https://wa.me/${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
+                  WA: {company.whatsapp}
+                </a>
+              </div>
+            )}
             <div className={cn('flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs', hasLinkedIn ? 'bg-sky-50 text-sky-700' : 'bg-muted text-muted-foreground')}>
               <Linkedin className="w-3.5 h-3.5 flex-shrink-0" />
               {hasLinkedIn ? (
@@ -316,6 +408,12 @@ export default function CompanyProfile() {
                 </a>
               ) : 'No LinkedIn'}
             </div>
+            {company.contact_person && (
+              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md text-xs bg-muted/50">
+                <span className="text-muted-foreground shrink-0">Contact:</span>
+                <span className="font-medium truncate">{company.contact_person}{company.contact_title ? ` · ${company.contact_title}` : ''}</span>
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -568,6 +666,12 @@ export default function CompanyProfile() {
           </div>
 
           <div className="pt-2 border-t border-border">
+            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs" onClick={() => setEditContactOpen(true)}>
+              <Edit2 className="w-3.5 h-3.5" /> Edit Contact Info
+            </Button>
+          </div>
+
+          <div className="pt-2 border-t border-border">
             <AICopilot companyId={id} className="mb-3" />
           </div>
 
@@ -590,6 +694,13 @@ export default function CompanyProfile() {
           </div>
         </aside>
       </div>
+
+      <EditContactModal
+        company={company}
+        open={editContactOpen}
+        onClose={() => setEditContactOpen(false)}
+        onSaved={refresh}
+      />
     </div>
   );
 }

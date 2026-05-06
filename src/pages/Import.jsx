@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,30 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useActiveProject } from '@/lib/ProjectContext';
 import ProjectScopeBanner from '@/components/ProjectScopeBanner';
+
+const MAPPABLE_FIELDS = [
+  { value: 'company_name',   label: 'Company Name' },
+  { value: 'cr_number',      label: 'CR Number' },
+  { value: 'category',       label: 'Category / Industry' },
+  { value: 'source',         label: 'Source' },
+  { value: 'website',        label: 'Website' },
+  { value: 'primary_email',  label: 'Primary Email' },
+  { value: 'all_emails',     label: 'All Emails' },
+  { value: 'primary_phone',  label: 'Primary Phone' },
+  { value: 'all_phones',     label: 'All Phones' },
+  { value: 'linkedin_url',   label: 'LinkedIn URL' },
+  { value: 'whatsapp',       label: 'WhatsApp' },
+  { value: 'contact_person', label: 'Contact Name' },
+  { value: 'contact_title',  label: 'Contact Title' },
+  { value: 'contact_email',  label: 'Contact Email' },
+  { value: 'contact_phone',  label: 'Contact Phone' },
+  { value: 'country',        label: 'Country' },
+  { value: 'company_size',   label: 'Company Size' },
+  { value: 'relation',       label: 'Relation' },
+  { value: 'icp_fit',        label: 'ICP Fit' },
+  { value: 'enrichment_status', label: 'Enrichment Status' },
+  { value: 'last_enriched',  label: 'Last Enriched' },
+];
 
 const SUMMARY_FIELDS = [
   { key: 'total_rows',       label: 'Total Rows',        color: 'text-foreground' },
@@ -44,9 +68,9 @@ const SKIP_REASON_LABELS = {
 function StatusBanner({ status, summary }) {
   const saved = (summary?.imported_rows ?? 0) + (summary?.updated_rows ?? 0);
 
-  // Guard: if backend says 'completed' but nothing was actually saved,
-  // treat it as completed_no_records (handles legacy backend responses)
-  const effectiveStatus = (status === 'completed' && saved === 0) ? 'completed_no_records' : status;
+  const effectiveStatus =
+    (status === 'completed' && saved === 0 && (summary?.duplicate_rows ?? 0) > 0) ? 'no_new_records' :
+    (status === 'completed' && saved === 0) ? 'completed_no_records' : status;
 
   if (effectiveStatus === 'completed' || (effectiveStatus === 'partial_success' && saved > 0 && !summary?.error_rows)) {
     return (
@@ -70,6 +94,21 @@ function StatusBanner({ status, summary }) {
           <p className="font-semibold text-amber-800">Import completed with warnings</p>
           <p className="text-sm text-amber-700">
             {saved} companies saved · {summary?.skipped_rows ?? 0} skipped · {summary?.error_rows ?? 0} errors
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (effectiveStatus === 'no_new_records') {
+    return (
+      <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <Info className="w-6 h-6 text-blue-500 flex-shrink-0" />
+        <div>
+          <p className="font-semibold text-blue-800">No new records — already imported</p>
+          <p className="text-sm text-blue-700">
+            {summary?.duplicate_rows ?? 0} companies already exist in the database.
+            {summary?.skipped_rows > 0 ? ` ${summary.skipped_rows} rows skipped (missing company name).` : ''}
           </p>
         </div>
       </div>
@@ -279,8 +318,9 @@ export default function Import() {
 
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [columnOverrides, setColumnOverrides] = useState({});
   const [summary, setSummary] = useState(null);
-  const [importStatus, setImportStatus] = useState(null); // final status string from server
+  const [importStatus, setImportStatus] = useState(null);
   const [diagnostics, setDiagnostics] = useState(null);
   const [errors, setErrors] = useState([]);
   const [stage, setStage] = useState('upload'); // upload | loading-preview | preview | importing | done
@@ -359,11 +399,15 @@ export default function Import() {
       }
 
       const fileBase64 = await fileToBase64(file);
+      const activeOverrides = Object.fromEntries(
+        Object.entries(columnOverrides).filter(([, v]) => v && v !== '_ignore')
+      );
       const res = await base44.functions.invoke('importExcel', {
         file_base64: fileBase64,
         filename: file.name,
         preview_only: false,
         project_id: projectIdForImport || undefined,
+        column_overrides: Object.keys(activeOverrides).length ? activeOverrides : undefined,
       });
 
       const data = res.data;
@@ -397,6 +441,7 @@ export default function Import() {
   const reset = () => {
     setFile(null);
     setPreview(null);
+    setColumnOverrides({});
     setSummary(null);
     setImportStatus(null);
     setDiagnostics(null);
@@ -586,6 +631,38 @@ export default function Import() {
                   <span className="font-mono text-primary">{m.field}</span>
                 </Badge>
               ))}
+            </div>
+          )}
+
+          {/* Warning + manual remap for unrecognized columns */}
+          {preview.unrecognized_headers?.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <p className="text-xs font-medium text-amber-800">
+                  {preview.recognized_count ?? preview.column_mapping?.length ?? 0} of {(preview.column_mapping?.length ?? 0) + preview.unrecognized_headers.length} columns recognized.
+                  {' '}Map the remaining columns below to import their data.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {preview.unrecognized_headers.map(header => (
+                  <div key={header} className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-amber-700 truncate min-w-0 flex-1" title={header}>{header}</span>
+                    <Select
+                      value={columnOverrides[header] || '_ignore'}
+                      onValueChange={v => setColumnOverrides(o => ({ ...o, [header]: v }))}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-44 flex-shrink-0"><SelectValue placeholder="Ignore" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_ignore" className="text-xs text-muted-foreground">— Ignore —</SelectItem>
+                        {MAPPABLE_FIELDS.map(f => (
+                          <SelectItem key={f.value} value={f.value} className="text-xs">{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

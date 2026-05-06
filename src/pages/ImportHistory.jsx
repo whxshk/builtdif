@@ -10,12 +10,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow, format } from 'date-fns';
 
 const STATUS_META = {
-  completed:            { label: 'Completed',       cls: 'bg-green-100 text-green-700' },
-  partial_success:      { label: 'Partial',         cls: 'bg-amber-100 text-amber-700' },
-  completed_no_records: { label: 'No Records',      cls: 'bg-orange-100 text-orange-700' },
-  failed:               { label: 'Failed',          cls: 'bg-red-100 text-red-600' },
-  processing:           { label: 'Processing',      cls: 'bg-blue-100 text-blue-700' },
-  pending:              { label: 'Pending',          cls: 'bg-gray-100 text-gray-600' },
+  completed:            { label: 'Completed',        cls: 'bg-green-100 text-green-700' },
+  partial_success:      { label: 'Partial',          cls: 'bg-amber-100 text-amber-700' },
+  no_new_records:       { label: 'Already imported', cls: 'bg-blue-100 text-blue-700' },
+  completed_no_records: { label: 'No records found', cls: 'bg-orange-100 text-orange-700' },
+  failed:               { label: 'Failed',           cls: 'bg-red-100 text-red-600' },
+  processing:           { label: 'Processing',       cls: 'bg-blue-100 text-blue-700' },
+  pending:              { label: 'Pending',           cls: 'bg-gray-100 text-gray-600' },
 };
 
 const SKIP_REASON_LABELS = {

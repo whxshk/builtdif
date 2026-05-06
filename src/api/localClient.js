@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { parseSheet } from '@/lib/importParser.js';
+import { parseSheet, buildRowObj, normalizeRowObj } from '@/lib/importParser.js';
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 const now = () => new Date().toISOString();
@@ -188,9 +188,48 @@ const parseExcelWorkbook = (fileBase64) => {
   return { sheetName: bestSheetName, parseResult: bestParseResult, rawRows: bestRawRows, allSheets: wb.SheetNames };
 };
 
-const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) => {
+const handleImportExcel = ({ file_base64, filename, preview_only, project_id, column_overrides = {} }) => {
   const { sheetName, parseResult, rawRows, allSheets } = parseExcelWorkbook(file_base64);
-  const { companies, skipped, recognized, unrecognized, headerRowIndex, totalDataRows } = parseResult;
+  const { companies: baseCompanies, skipped: baseSkipped, recognized, unrecognized, headerRowIndex, totalDataRows, colMap } = parseResult;
+
+  // Apply any manual column overrides (user remapped an unrecognized header)
+  let companies = baseCompanies;
+  let skipped = baseSkipped;
+  const effectiveColMap = { ...colMap };
+
+  if (column_overrides && Object.keys(column_overrides).length > 0) {
+    const headerRow = rawRows[headerRowIndex] ?? [];
+    const usedFields = new Set(Object.values(colMap));
+    for (let ci = 0; ci < headerRow.length; ci++) {
+      const h = headerRow[ci];
+      if (!h) continue;
+      const rawStr = String(h).trim();
+      const targetField = column_overrides[rawStr];
+      if (targetField && targetField !== '_ignore' && !usedFields.has(targetField)) {
+        effectiveColMap[ci] = targetField;
+        usedFields.add(targetField);
+      }
+    }
+    if (Object.keys(effectiveColMap).length > Object.keys(colMap).length) {
+      const dataRows = rawRows
+        .slice(headerRowIndex + 1)
+        .filter(r => r.some(c => c !== null && c !== '' && c !== undefined));
+      companies = [];
+      skipped = [...baseSkipped];
+      for (let i = 0; i < dataRows.length; i++) {
+        const rowIndex = headerRowIndex + 2 + i;
+        const rawObj = buildRowObj(dataRows[i], effectiveColMap);
+        const mapped = normalizeRowObj(rawObj);
+        if (!mapped.company_name) {
+          if (!skipped.find(s => s.row === rowIndex)) {
+            skipped.push({ row: rowIndex, reason: 'missing_company_name' });
+          }
+        } else {
+          companies.push({ rowIndex, mapped });
+        }
+      }
+    }
+  }
 
   if (preview_only) {
     const headerRow = rawRows[headerRowIndex] ?? [];
@@ -214,6 +253,8 @@ const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) 
         total_rows: totalDataRows,
         detected_sheet: sheetName,
         column_mapping: recognized.map(r => ({ raw: r.raw, field: r.field })),
+        unrecognized_headers: unrecognized,
+        recognized_count: recognized.length,
       },
     });
   }
@@ -336,7 +377,9 @@ const handleImportExcel = ({ file_base64, filename, preview_only, project_id }) 
   const saved = summary.imported_rows + summary.updated_rows;
   const status = saved > 0
     ? (summary.error_rows > 0 ? 'partial_success' : 'completed')
-    : (summary.error_rows > 0 ? 'failed' : 'completed_no_records');
+    : summary.error_rows > 0 ? 'failed'
+    : summary.duplicate_rows > 0 ? 'no_new_records'
+    : 'completed_no_records';
 
   const jobs = getStore('ImportJob');
   const job = {
@@ -421,15 +464,19 @@ const handleGenerateOutreach = async ({ bulk_ids, company_ids, company_id, chann
   const companyMap = Object.fromEntries(getStore('Company').map(c => [c.id, c]));
   const channels = channel ? [channel] : ['email', 'linkedin', 'phone'];
   let generated = 0;
+  let skipped_no_channel = 0;
 
   for (const cid of ids) {
     const company = companyMap[cid];
     if (!company) continue;
 
+    const hasAnyChannel = company.primary_email || company.linkedin_url || company.primary_phone || company.whatsapp;
+    if (!hasAnyChannel && channels.length > 1) { skipped_no_channel++; continue; }
+
     for (const ch of channels) {
       if (ch === 'email' && !company.primary_email) continue;
       if (ch === 'linkedin' && !company.linkedin_url) continue;
-      if (ch === 'phone' && !company.primary_phone) continue;
+      if (ch === 'phone' && !company.primary_phone && !company.whatsapp) continue;
 
       const { body, subject } = await generateDraftContent(company, ch, model);
       const existingIdx = drafts.findIndex(d => d.company_id === cid && d.channel === ch);
@@ -450,17 +497,25 @@ const handleGenerateOutreach = async ({ bulk_ids, company_ids, company_id, chann
   }
 
   setStore('OutreachDraft', drafts);
-  return { data: { generated, model: model || 'template' } };
+  return { data: { generated, skipped_no_channel, model: model || 'template' } };
 };
 
 // ─── Approve Draft ────────────────────────────────────────────────────────────
 
-const handleApproveDraft = ({ draft_id, action }) => {
+const handleApproveDraft = ({ draft_id, action, updated_body, updated_subject }) => {
   const drafts = getStore('OutreachDraft');
   const idx = drafts.findIndex(d => d.id === draft_id);
   if (idx !== -1) {
-    const status = action === 'approve' ? 'approved' : 'skipped';
-    drafts[idx] = { ...drafts[idx], status, ...(action === 'approve' ? { approved_at: now() } : {}), updated_date: now() };
+    if (action === 'approve') {
+      drafts[idx] = { ...drafts[idx], status: 'approved', approved_at: now(), updated_date: now() };
+    } else if (action === 'skip') {
+      drafts[idx] = { ...drafts[idx], status: 'skipped', updated_date: now() };
+    } else if (action === 'edit') {
+      const updates = { updated_date: now() };
+      if (updated_body !== undefined) updates.body = updated_body;
+      if (updated_subject !== undefined) updates.subject = updated_subject;
+      drafts[idx] = { ...drafts[idx], ...updates };
+    }
     setStore('OutreachDraft', drafts);
   }
   return Promise.resolve({ data: { success: true } });
@@ -468,14 +523,51 @@ const handleApproveDraft = ({ draft_id, action }) => {
 
 // ─── Send Email ───────────────────────────────────────────────────────────────
 
-const handleSendEmail = ({ draft_id }) => {
+const SETTINGS_KEY = 'outreach_app_settings';
+const DEFAULT_SETTINGS = { test_mode: true, daily_email_limit: 50, sending_window_start: '09:00', sending_window_end: '17:00' };
+
+const getSettings = () => {
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+  catch { return DEFAULT_SETTINGS; }
+};
+
+const handleSendEmail = ({ draft_id, test_mode: explicitTestMode }) => {
+  const { test_mode } = getSettings();
+  const isTest = explicitTestMode !== undefined ? explicitTestMode : test_mode;
   const drafts = getStore('OutreachDraft');
   const idx = drafts.findIndex(d => d.id === draft_id);
   if (idx !== -1) {
-    drafts[idx] = { ...drafts[idx], status: 'sent', sent_at: now(), updated_date: now() };
+    drafts[idx] = { ...drafts[idx], status: 'sent', sent_at: now(), updated_date: now(), simulated: isTest };
     setStore('OutreachDraft', drafts);
   }
-  return Promise.resolve({ data: { success: true, mode: 'local' } });
+  return Promise.resolve({ data: { success: true, mode: isTest ? 'test' : 'live', test_mode: isTest } });
+};
+
+// ─── Log Outreach ─────────────────────────────────────────────────────────────
+
+const handleLogOutreach = ({ company_id, channel, action, status, draft_id, notes }) => {
+  const logs = getStore('OutreachLog');
+  logs.push({
+    id: generateId(), created_date: now(), updated_date: now(),
+    company_id, channel, action: action || 'logged', status: status || 'logged',
+    ...(draft_id ? { draft_id } : {}),
+    ...(notes ? { notes } : {}),
+  });
+  setStore('OutreachLog', logs);
+  return Promise.resolve({ data: { success: true } });
+};
+
+// ─── App Settings ─────────────────────────────────────────────────────────────
+
+const handleAppSettings = ({ action, settings: incoming }) => {
+  if (action === 'get') {
+    return Promise.resolve({ data: { settings: getSettings() } });
+  }
+  if (action === 'update') {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(incoming));
+    return Promise.resolve({ data: { success: true } });
+  }
+  return Promise.resolve({ data: {} });
 };
 
 // ─── Compliance Engine ────────────────────────────────────────────────────────
@@ -526,6 +618,8 @@ const HANDLERS = {
   generateOutreach:   (args) => Promise.resolve().then(() => handleGenerateOutreach(args)),
   approveDraft:       handleApproveDraft,
   sendEmail:          handleSendEmail,
+  logOutreach:        handleLogOutreach,
+  appSettings:        handleAppSettings,
   complianceEngine:   handleComplianceEngine,
 };
 

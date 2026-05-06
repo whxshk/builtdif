@@ -11,14 +11,19 @@ export const HEADER_ALIASES = {
   // company_name
   'company name':   'company_name',
   'company':        'company_name',
+  'name':           'company_name',
   'organization':   'company_name',
   'organisation':   'company_name',
   'business name':  'company_name',
   'account name':   'company_name',
+  'account':        'company_name',
   'client name':    'company_name',
+  'client':         'company_name',
   'entity name':    'company_name',
   'firm name':      'company_name',
   'firm':           'company_name',
+  'lead':           'company_name',
+  'prospect':       'company_name',
 
   // cr_number
   'cr number':                     'cr_number',
@@ -149,6 +154,36 @@ export const HEADER_ALIASES = {
   'primary contact': 'contact_person',
   'main contact':    'contact_person',
   'decision maker':  'contact_person',
+  'person':          'contact_person',
+  'first name':      'contact_person',
+
+  // contact_title
+  'contact title':   'contact_title',
+  'job title':       'contact_title',
+  'title':           'contact_title',
+  'position':        'contact_title',
+  'role':            'contact_title',
+  'designation':     'contact_title',
+
+  // contact_email
+  'contact email':   'contact_email',
+  'business email':  'contact_email',
+  'company email':   'contact_email',
+
+  // contact_phone
+  'contact phone':   'contact_phone',
+  'business phone':  'contact_phone',
+  'company phone':   'contact_phone',
+  'office phone':    'contact_phone',
+  'direct phone':    'contact_phone',
+
+  // whatsapp
+  'whatsapp':        'whatsapp',
+  'whatsapp number': 'whatsapp',
+  'wa':              'whatsapp',
+  'wa number':       'whatsapp',
+  'mobile whatsapp': 'whatsapp',
+  'whatsapp no':     'whatsapp',
 };
 
 /**
@@ -286,6 +321,10 @@ export function normalizeRowObj(obj) {
     relation:          normalizeCell(obj.relation),
     icp_fit:           normalizeCell(obj.icp_fit),
     contact_person:    normalizeCell(obj.contact_person),
+    contact_title:     normalizeCell(obj.contact_title),
+    contact_email:     normalizeCell(obj.contact_email),
+    contact_phone:     normalizePhone(obj.contact_phone),
+    whatsapp:          normalizePhone(obj.whatsapp),
   };
 }
 

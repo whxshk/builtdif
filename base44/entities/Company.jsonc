@@ -60,6 +60,18 @@
     "contact_person": {
       "type": "string"
     },
+    "contact_title": {
+      "type": "string"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "whatsapp": {
+      "type": "string"
+    },
     "outreach_status": {
       "type": "string",
       "enum": [
