@@ -11,8 +11,9 @@
         "pending",
         "processing",
         "completed",
-        "failed",
-        "partial_success"
+        "completed_no_records",
+        "partial_success",
+        "failed"
       ],
       "default": "pending"
     },
@@ -77,6 +78,19 @@
     "needs_enrichment": {
       "type": "number",
       "default": 0
+    },
+    "detected_sheet": {
+      "type": "string"
+    },
+    "detected_header_row": {
+      "type": "number",
+      "default": 0
+    },
+    "skip_reasons": {
+      "type": "string"
+    },
+    "column_mapping": {
+      "type": "string"
     },
     "error_details": {
       "type": "string"

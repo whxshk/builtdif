@@ -6,7 +6,7 @@ import { useLocation, Link } from 'react-router-dom';
 import {
   Mail, Linkedin, Phone, CheckCircle2, Send,
   Copy, Loader2, Zap, X, ChevronRight,
-  RefreshCw, Sparkles, AlertCircle
+  RefreshCw, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
