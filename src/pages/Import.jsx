@@ -121,7 +121,9 @@ function StatusBanner({ status, summary }) {
 }
 
 function DiagnosticsPanel({ diagnostics, summary }) {
-  const [open, setOpen] = useState(false);
+  // Auto-open when nothing was saved so the user sees the reason immediately
+  const nothingSaved = (summary?.imported_rows ?? 0) + (summary?.updated_rows ?? 0) === 0;
+  const [open, setOpen] = useState(nothingSaved);
   if (!diagnostics) return null;
 
   const skipReasons = summary?.skip_reasons_parsed ?? {};
