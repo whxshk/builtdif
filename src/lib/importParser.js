@@ -84,11 +84,16 @@ export const HEADER_ALIASES = {
   'web site':        'website',
 
   // linkedin_url
-  'linkedin':          'linkedin_url',
-  'linkedin url':      'linkedin_url',
-  'company linkedin':  'linkedin_url',
-  'linkedin profile':  'linkedin_url',
-  'linkedin page':     'linkedin_url',
+  'linkedin':              'linkedin_url',
+  'linkedin url':          'linkedin_url',
+  'company linkedin':      'linkedin_url',
+  'company linkedin url':  'linkedin_url',
+  'company linkedin page': 'linkedin_url',
+  'linkedin company':      'linkedin_url',
+  'linkedin company url':  'linkedin_url',
+  'linkedin profile':      'linkedin_url',
+  'linkedin page':         'linkedin_url',
+  'linkedin link':         'linkedin_url',
 
   // source
   'source':      'source',
@@ -102,6 +107,48 @@ export const HEADER_ALIASES = {
   'last enrichment date': 'last_enriched',
   'enrichment date':      'last_enriched',
   'date enriched':        'last_enriched',
+
+  // country
+  'country':         'country',
+  'company country': 'country',
+  'location':        'country',
+  'region':          'country',
+  'geography':       'country',
+  'geo':             'country',
+
+  // company_size
+  'company size':    'company_size',
+  'size':            'company_size',
+  'employees':       'company_size',
+  'headcount':       'company_size',
+  'no of employees': 'company_size',
+  'num employees':   'company_size',
+  'employee count':  'company_size',
+  'staff size':      'company_size',
+
+  // relation
+  'relation':      'relation',
+  'relationship':  'relation',
+  'relation type': 'relation',
+  'partner type':  'relation',
+  'account type':  'relation',
+
+  // icp_fit
+  'icp fit':     'icp_fit',
+  'icp':         'icp_fit',
+  'fit':         'icp_fit',
+  'icp score':   'icp_fit',
+  'ideal customer profile': 'icp_fit',
+
+  // contact_person
+  'contact person':  'contact_person',
+  'contact name':    'contact_person',
+  'key contact':     'contact_person',
+  'point of contact':'contact_person',
+  'poc':             'contact_person',
+  'primary contact': 'contact_person',
+  'main contact':    'contact_person',
+  'decision maker':  'contact_person',
 };
 
 /**
@@ -234,6 +281,11 @@ export function normalizeRowObj(obj) {
     linkedin_url:      normalizeUrl(obj.linkedin_url),
     source:            normalizeCell(obj.source),
     last_enriched:     normalizeDate(obj.last_enriched),
+    country:           normalizeCell(obj.country),
+    company_size:      normalizeCell(obj.company_size),
+    relation:          normalizeCell(obj.relation),
+    icp_fit:           normalizeCell(obj.icp_fit),
+    contact_person:    normalizeCell(obj.contact_person),
   };
 }
 

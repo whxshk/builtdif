@@ -45,6 +45,21 @@
     "last_enriched": {
       "type": "string"
     },
+    "country": {
+      "type": "string"
+    },
+    "company_size": {
+      "type": "string"
+    },
+    "relation": {
+      "type": "string"
+    },
+    "icp_fit": {
+      "type": "string"
+    },
+    "contact_person": {
+      "type": "string"
+    },
     "outreach_status": {
       "type": "string",
       "enum": [
