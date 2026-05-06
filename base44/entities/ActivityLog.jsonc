@@ -1,0 +1,47 @@
+{
+  "name": "ActivityLog",
+  "type": "object",
+  "properties": {
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "import",
+        "outreach_generated",
+        "draft_approved",
+        "email_sent",
+        "reply_received",
+        "task_completed",
+        "project_created",
+        "project_updated",
+        "enrichment_retry",
+        "contact_discovered",
+        "sequence_enrolled",
+        "bulk_action"
+      ]
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "entity_name": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action_type"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "entity_type": {
+      "type": "string"
+    },
+    "entity_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "success",
+        "blocked",
+        "failed",
+        "pending"
+      ],
+      "default": "success"
+    },
+    "ip_address": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "name": "CampaignSendingWindow",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "window_name": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Asia/Riyadh"
+    },
+    "send_monday": {
+      "type": "boolean",
+      "default": true
+    },
+    "send_tuesday": {
+      "type": "boolean",
+      "default": true
+    },
+    "send_wednesday": {
+      "type": "boolean",
+      "default": true
+    },
+    "send_thursday": {
+      "type": "boolean",
+      "default": true
+    },
+    "send_friday": {
+      "type": "boolean",
+      "default": false
+    },
+    "send_saturday": {
+      "type": "boolean",
+      "default": false
+    },
+    "send_sunday": {
+      "type": "boolean",
+      "default": false
+    },
+    "start_time": {
+      "type": "string",
+      "default": "09:00"
+    },
+    "end_time": {
+      "type": "string",
+      "default": "17:00"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "timezone"
+  ]
+}

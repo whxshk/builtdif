@@ -1,0 +1,60 @@
+{
+  "name": "SmsCompliance",
+  "type": "object",
+  "properties": {
+    "phone_number": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "opt_in_status": {
+      "type": "string",
+      "enum": [
+        "opted_in",
+        "not_collected",
+        "opted_out"
+      ],
+      "default": "not_collected"
+    },
+    "opt_in_source": {
+      "type": "string"
+    },
+    "opt_in_timestamp": {
+      "type": "string"
+    },
+    "opted_out_at": {
+      "type": "string"
+    },
+    "last_sms_sent_at": {
+      "type": "string"
+    },
+    "sms_status": {
+      "type": "string",
+      "enum": [
+        "eligible",
+        "missing_opt_in",
+        "opted_out",
+        "invalid_number",
+        "blocked",
+        "sent",
+        "failed"
+      ],
+      "default": "missing_opt_in"
+    },
+    "a2p_registered": {
+      "type": "boolean",
+      "default": false
+    },
+    "stop_received": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "phone_number"
+  ]
+}

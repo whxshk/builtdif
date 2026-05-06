@@ -1,0 +1,47 @@
+{
+  "name": "Template",
+  "type": "object",
+  "properties": {
+    "template_name": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone"
+      ]
+    },
+    "draft_type": {
+      "type": "string",
+      "enum": [
+        "first_outreach",
+        "follow_up",
+        "re_engagement",
+        "connection_request",
+        "linkedin_message",
+        "call_script",
+        "voicemail"
+      ]
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "is_global": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "template_name",
+    "channel",
+    "body"
+  ]
+}

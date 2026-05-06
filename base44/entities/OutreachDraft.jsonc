@@ -1,0 +1,60 @@
+{
+  "name": "OutreachDraft",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone"
+      ]
+    },
+    "draft_type": {
+      "type": "string",
+      "enum": [
+        "first_outreach",
+        "follow_up",
+        "connection_request",
+        "linkedin_message",
+        "call_script",
+        "voicemail",
+        "call_notes"
+      ]
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "approved",
+        "sent",
+        "failed",
+        "skipped"
+      ],
+      "default": "draft"
+    },
+    "approved_at": {
+      "type": "string"
+    },
+    "sent_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "channel",
+    "draft_type"
+  ]
+}

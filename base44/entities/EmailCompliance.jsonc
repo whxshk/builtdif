@@ -1,0 +1,77 @@
+{
+  "name": "EmailCompliance",
+  "type": "object",
+  "properties": {
+    "sending_account_id": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "spf_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "dkim_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "dmarc_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "unsubscribe_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "physical_address_configured": {
+      "type": "boolean",
+      "default": false
+    },
+    "reply_to_configured": {
+      "type": "boolean",
+      "default": false
+    },
+    "bounce_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "complaint_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "open_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "reply_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "health_score": {
+      "type": "number",
+      "default": 100
+    },
+    "auto_pause_on_high_bounce": {
+      "type": "boolean",
+      "default": true
+    },
+    "bounce_threshold": {
+      "type": "number",
+      "default": 5
+    },
+    "complaint_threshold": {
+      "type": "number",
+      "default": 0.1
+    },
+    "last_checked_at": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "domain"
+  ]
+}

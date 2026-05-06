@@ -1,0 +1,47 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Settings key \u2014 use 'global' for the singleton settings record"
+    },
+    "test_mode": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, emails are simulated (no real send). Read by queueWorker and sendEmail."
+    },
+    "daily_email_limit": {
+      "type": "number",
+      "default": 100
+    },
+    "delay_between_emails_seconds": {
+      "type": "number",
+      "default": 90
+    },
+    "sending_window_start": {
+      "type": "string",
+      "default": "09:00"
+    },
+    "sending_window_end": {
+      "type": "string",
+      "default": "17:00"
+    },
+    "avoid_weekends": {
+      "type": "boolean",
+      "default": true
+    },
+    "sends_today": {
+      "type": "number",
+      "default": 0,
+      "description": "Counter \u2014 emails sent today across system"
+    },
+    "sends_today_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD of the day sends_today was last reset"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

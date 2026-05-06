@@ -1,0 +1,55 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "linkedin": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "confidence_score": {
+      "type": "number",
+      "default": 0
+    },
+    "is_primary": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_contacted_at": {
+      "type": "string"
+    },
+    "outreach_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "contacted",
+        "replied",
+        "qualified",
+        "not_interested"
+      ],
+      "default": "not_started"
+    }
+  },
+  "required": [
+    "company_id"
+  ]
+}

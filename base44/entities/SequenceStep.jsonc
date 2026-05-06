@@ -1,0 +1,50 @@
+{
+  "name": "SequenceStep",
+  "type": "object",
+  "properties": {
+    "sequence_id": {
+      "type": "string"
+    },
+    "step_number": {
+      "type": "number"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone",
+        "task"
+      ]
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "send_email",
+        "linkedin_message",
+        "follow_up",
+        "task_reminder",
+        "connection_request"
+      ]
+    },
+    "delay_days": {
+      "type": "number",
+      "default": 0
+    },
+    "template_id": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sequence_id",
+    "step_number",
+    "channel",
+    "action_type"
+  ]
+}

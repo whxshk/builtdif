@@ -1,0 +1,68 @@
+{
+  "name": "CallCompliance",
+  "type": "object",
+  "properties": {
+    "phone_number": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "do_not_call": {
+      "type": "boolean",
+      "default": false
+    },
+    "consent_status": {
+      "type": "string",
+      "enum": [
+        "granted",
+        "not_collected",
+        "revoked"
+      ],
+      "default": "not_collected"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "allowed_call_start_time": {
+      "type": "string",
+      "default": "09:00"
+    },
+    "allowed_call_end_time": {
+      "type": "string",
+      "default": "18:00"
+    },
+    "max_attempts_per_week": {
+      "type": "number",
+      "default": 3
+    },
+    "attempts_this_week": {
+      "type": "number",
+      "default": 0
+    },
+    "last_call_at": {
+      "type": "string"
+    },
+    "call_status": {
+      "type": "string",
+      "enum": [
+        "no_answer",
+        "answered",
+        "voicemail",
+        "interested",
+        "not_interested",
+        "wrong_number",
+        "do_not_call",
+        "follow_up_later",
+        "never_called"
+      ],
+      "default": "never_called"
+    }
+  },
+  "required": [
+    "phone_number"
+  ]
+}

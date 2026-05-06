@@ -1,0 +1,55 @@
+{
+  "name": "OutreachLog",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone"
+      ]
+    },
+    "action": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "opened",
+        "clicked",
+        "replied",
+        "no_answer",
+        "answered",
+        "interested",
+        "not_interested",
+        "follow_up_later",
+        "wrong_number",
+        "test_send",
+        "failed",
+        "copied",
+        "completed"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "draft_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "channel",
+    "action",
+    "status"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "AppSetting",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Setting key (e.g. test_mode, daily_email_limit)"
+    },
+    "value": {
+      "type": "string",
+      "description": "Setting value as JSON-encoded string"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

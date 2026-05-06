@@ -1,0 +1,82 @@
+{
+  "name": "ScheduledOutreach",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "contact_id": {
+      "type": "string"
+    },
+    "draft_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "sms",
+        "phone"
+      ]
+    },
+    "sending_account_id": {
+      "type": "string"
+    },
+    "scheduled_for": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "scheduled",
+        "sending",
+        "sent",
+        "failed",
+        "paused",
+        "skipped",
+        "cancelled",
+        "needs_approval",
+        "compliance_blocked"
+      ],
+      "default": "queued"
+    },
+    "attempt_count": {
+      "type": "number",
+      "default": 0
+    },
+    "last_attempt_at": {
+      "type": "string"
+    },
+    "last_error": {
+      "type": "string"
+    },
+    "provider_message_id": {
+      "type": "string"
+    },
+    "compliance_notes": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "blocked"
+      ],
+      "default": "low"
+    }
+  },
+  "required": [
+    "company_id",
+    "channel"
+  ]
+}

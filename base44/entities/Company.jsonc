@@ -1,0 +1,78 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string"
+    },
+    "cr_number": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "enrichment_status": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "not_found",
+        "needs_enrichment"
+      ],
+      "default": "needs_enrichment"
+    },
+    "primary_email": {
+      "type": "string"
+    },
+    "all_emails": {
+      "type": "string"
+    },
+    "primary_phone": {
+      "type": "string"
+    },
+    "all_phones": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "linkedin_url": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "last_enriched": {
+      "type": "string"
+    },
+    "outreach_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "contacted",
+        "responded",
+        "qualified",
+        "not_interested",
+        "skipped"
+      ],
+      "default": "not_started"
+    },
+    "last_contacted_at": {
+      "type": "string"
+    },
+    "next_follow_up_at": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "string"
+    },
+    "notes_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "company_name"
+  ]
+}

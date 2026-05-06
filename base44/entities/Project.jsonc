@@ -1,0 +1,66 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "project_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "campaign_type": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone",
+        "multi_channel"
+      ],
+      "default": "multi_channel"
+    },
+    "target_category": {
+      "type": "string"
+    },
+    "target_region": {
+      "type": "string"
+    },
+    "outreach_goal": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string"
+    },
+    "end_date": {
+      "type": "string"
+    },
+    "total_companies": {
+      "type": "number",
+      "default": 0
+    },
+    "contacted_count": {
+      "type": "number",
+      "default": 0
+    },
+    "replied_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "project_name"
+  ]
+}

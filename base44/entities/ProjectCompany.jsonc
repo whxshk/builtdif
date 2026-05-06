@@ -1,0 +1,50 @@
+{
+  "name": "ProjectCompany",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "outreach_stage": {
+      "type": "string",
+      "enum": [
+        "new",
+        "queued",
+        "generated",
+        "approved",
+        "contacted",
+        "replied",
+        "follow_up",
+        "qualified",
+        "not_interested",
+        "skipped"
+      ],
+      "default": "new"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "company_id"
+  ]
+}

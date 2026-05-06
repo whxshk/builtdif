@@ -1,0 +1,88 @@
+{
+  "name": "ImportJob",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "partial_success"
+      ],
+      "default": "pending"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string"
+    },
+    "total_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "imported_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "updated_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "duplicate_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "skipped_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "error_rows": {
+      "type": "number",
+      "default": 0
+    },
+    "missing_email": {
+      "type": "number",
+      "default": 0
+    },
+    "missing_phone": {
+      "type": "number",
+      "default": 0
+    },
+    "missing_linkedin": {
+      "type": "number",
+      "default": 0
+    },
+    "website_only": {
+      "type": "number",
+      "default": 0
+    },
+    "email_ready": {
+      "type": "number",
+      "default": 0
+    },
+    "linkedin_ready": {
+      "type": "number",
+      "default": 0
+    },
+    "phone_ready": {
+      "type": "number",
+      "default": 0
+    },
+    "needs_enrichment": {
+      "type": "number",
+      "default": 0
+    },
+    "error_details": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "filename"
+  ]
+}

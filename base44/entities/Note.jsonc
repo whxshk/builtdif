@@ -1,0 +1,30 @@
+{
+  "name": "Note",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "general",
+        "call",
+        "email",
+        "linkedin",
+        "follow_up"
+      ],
+      "default": "general"
+    }
+  },
+  "required": [
+    "company_id",
+    "note"
+  ]
+}

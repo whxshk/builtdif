@@ -1,0 +1,101 @@
+{
+  "name": "SendingAccount",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "sms",
+        "phone"
+      ]
+    },
+    "provider": {
+      "type": "string"
+    },
+    "email_address": {
+      "type": "string"
+    },
+    "phone_number": {
+      "type": "string"
+    },
+    "linkedin_profile_url": {
+      "type": "string"
+    },
+    "daily_limit": {
+      "type": "number",
+      "default": 100
+    },
+    "hourly_limit": {
+      "type": "number",
+      "default": 20
+    },
+    "rolling_24h_limit": {
+      "type": "number",
+      "default": 100
+    },
+    "warmup_stage": {
+      "type": "number",
+      "default": 1
+    },
+    "warmup_day": {
+      "type": "number",
+      "default": 1
+    },
+    "sends_today": {
+      "type": "number",
+      "default": 0
+    },
+    "sends_this_hour": {
+      "type": "number",
+      "default": 0
+    },
+    "sends_rolling_24h": {
+      "type": "number",
+      "default": 0
+    },
+    "health_status": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "warming_up",
+        "limited",
+        "paused",
+        "risky",
+        "blocked",
+        "disconnected"
+      ],
+      "default": "warming_up"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "last_used_at": {
+      "type": "string"
+    },
+    "paused_reason": {
+      "type": "string"
+    },
+    "bounce_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "complaint_rate": {
+      "type": "number",
+      "default": 0
+    },
+    "reply_rate": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "account_name",
+    "channel"
+  ]
+}

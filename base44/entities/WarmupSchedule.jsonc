@@ -1,0 +1,59 @@
+{
+  "name": "WarmupSchedule",
+  "type": "object",
+  "properties": {
+    "sending_account_id": {
+      "type": "string"
+    },
+    "schedule_name": {
+      "type": "string"
+    },
+    "day_1_limit": {
+      "type": "number",
+      "default": 25
+    },
+    "day_2_limit": {
+      "type": "number",
+      "default": 35
+    },
+    "day_3_limit": {
+      "type": "number",
+      "default": 50
+    },
+    "day_4_limit": {
+      "type": "number",
+      "default": 70
+    },
+    "day_5_limit": {
+      "type": "number",
+      "default": 90
+    },
+    "day_6_limit": {
+      "type": "number",
+      "default": 120
+    },
+    "day_7_limit": {
+      "type": "number",
+      "default": 150
+    },
+    "max_bounce_rate_pct": {
+      "type": "number",
+      "default": 3
+    },
+    "max_complaint_rate_pct": {
+      "type": "number",
+      "default": 0.1
+    },
+    "min_reply_rate_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "schedule_name"
+  ]
+}

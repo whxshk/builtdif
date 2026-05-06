@@ -1,0 +1,51 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "follow_up_email",
+        "linkedin_follow_up",
+        "call_reminder",
+        "enrichment_reminder",
+        "general"
+      ],
+      "default": "general"
+    },
+    "title": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "overdue"
+      ],
+      "default": "pending"
+    },
+    "assigned_to": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "company_id"
+  ]
+}

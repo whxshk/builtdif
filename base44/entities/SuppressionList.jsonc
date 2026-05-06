@@ -1,0 +1,55 @@
+{
+  "name": "SuppressionList",
+  "type": "object",
+  "properties": {
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "sms",
+        "phone",
+        "all"
+      ]
+    },
+    "value": {
+      "type": "string"
+    },
+    "value_type": {
+      "type": "string",
+      "enum": [
+        "email",
+        "domain",
+        "phone",
+        "linkedin_url",
+        "company_id"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "unsubscribed",
+        "bounced",
+        "complained",
+        "opted_out",
+        "do_not_contact",
+        "competitor",
+        "manual"
+      ]
+    },
+    "source": {
+      "type": "string"
+    },
+    "added_by": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "channel",
+    "value",
+    "reason"
+  ]
+}

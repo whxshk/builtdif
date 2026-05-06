@@ -1,0 +1,63 @@
+{
+  "name": "LinkedInCompliance",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "linkedin_profile_url": {
+      "type": "string"
+    },
+    "daily_manual_task_limit": {
+      "type": "number",
+      "default": 20
+    },
+    "weekly_manual_task_limit": {
+      "type": "number",
+      "default": 80
+    },
+    "task_spacing_minutes": {
+      "type": "number",
+      "default": 30
+    },
+    "auto_send_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "official_api_connected": {
+      "type": "boolean",
+      "default": false
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "manual_assist",
+        "official_api"
+      ],
+      "default": "manual_assist"
+    },
+    "health_status": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "limited",
+        "paused",
+        "blocked"
+      ],
+      "default": "healthy"
+    },
+    "tasks_today": {
+      "type": "number",
+      "default": 0
+    },
+    "tasks_this_week": {
+      "type": "number",
+      "default": 0
+    },
+    "blocked_auto_attempts": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": []
+}
